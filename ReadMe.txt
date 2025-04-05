@@ -13,7 +13,7 @@ now simply replace enter the ngrok link when prompted and you will be connected 
 
 TO JOIN THE CHAT:
 
-simply run the program and Join the chat room!
+simply run the program and Join the chat room and enjoy!
 
 
 
