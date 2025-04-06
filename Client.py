@@ -1,15 +1,33 @@
 import socket
 import threading
 import urllib.request
+import requests  
 
 public_ip = urllib.request.urlopen('https://api.ipify.org').read().decode('utf8')
 print("[TEST] Public IP Address:", public_ip)
+
+ip = ''
+port = ''
+
+def getdefaults():
+    global ip, port  
+    URL = "https://pastebin.com/raw/S26ywJmy"
+    response = requests.get(URL)
+    ip_port = response.text.strip()
+
+    ip, port = ip_port.split(':')
+
+    print(f"Detected Default IP/PORT {ip} : {port}")
+
+getdefaults()
+
 
 
 nickname = input("Enter nickname: ")
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect(('4.tcp.eu.ngrok.io', 10458))
+client.connect((ip, int(port)))
+
 
 def receive():
     while True:
