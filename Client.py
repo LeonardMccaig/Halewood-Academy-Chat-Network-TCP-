@@ -1,79 +1,102 @@
 import socket
 import threading
+import urllib.request
 import os
-import time
+import sys
 
-import os
+paste_url = "https://pastebin.com/raw/jkvhCMBD"
 
-def cls():
-    os.system('cls' if os.name=='nt' else 'clear')
+import urllib.request
 
-# Now, to clear the screen
-cls()
+import urllib.request
 
-COLORS = {
-    "RESET": "\033[0m",
-    "BOLD": "\033[1m",
-    "CYAN": "\033[96m",
-    "GREEN": "\033[92m",
-    "YELLOW": "\033[93m",
-    "RED": "\033[91m",
-}
+def getdefstats(paste_url):
+    try:
+        req = urllib.request.Request(
+            paste_url,
+            headers={'User-Agent': 'Mozilla/5.0'}
+        )
+        with urllib.request.urlopen(req) as response:
+            content = response.read().decode('utf-8').strip()
+            ip, port = content.split(":")
+            port = int(port)
+            print("Default IP:", ip)
+            print("Default Port:", port)
+            return ip, port
+    except Exception as e:
+        print("Failed to get default stats:", e)
+        return None, None
+
+    
+default_ip, default_port = getdefstats(paste_url)
+
+
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def print_banner():
+def print_header():
     clear_screen()
-    print(f"{COLORS['CYAN']}{COLORS['BOLD']}=== halewood Academy Chat roomz ==={COLORS['RESET']}\n")
+    print("=" * 50)
+    print("          Halewood Chat Roomz")
+    print("=" * 50)
+    print("Type your messages below. Press Ctrl+C to exit.\n")
 
-def get_port():
-    while True:
-        print_banner()
-        print("Options:\n1) Global Chat\n2) Private Chat")
-        choice = input(f"{COLORS['YELLOW']}Enter your choice (1 or 2): {COLORS['RESET']}")
+public_ip = urllib.request.urlopen('https://api.ipify.org').read().decode('utf8')
+print(f"[INFO] Your Public IP: {public_ip}")
 
-        if choice == "1":
-            return 8008
-        elif choice == "2":
-            try:
-                return int(input(f"{COLORS['YELLOW']}Enter your custom port (Room number): {COLORS['RESET']}"))
-            except ValueError:
-                print(f"{COLORS['RED']}Invalid port. Please enter a number.{COLORS['RESET']}")
-        else:
-            print(f"{COLORS['RED']}Invalid choice. Please enter 1 or 2.{COLORS['RESET']}")
-
-port = get_port()
-nickname = input(f"{COLORS['GREEN']}Enter your nickname: {COLORS['RESET']}")
-cls()
+nickname = input("Enter your nickname: ")
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect(('192.168.1.123', port))
+print("Leave blank for default")
+ip = input("Server IP: ").strip()
+port = input("Server Port: ").strip()
+
+
+## making def port and ip 
+if ip == "":
+    ip = default_ip
+if port == "":
+    port = default_port
+else:
+    port = int(port)
+
+client.connect((ip, port))
+
+
+print_header()
 
 def receive():
     while True:
         try:
             message = client.recv(1024).decode('ascii')
+
             if message == 'NICK':
                 client.send(nickname.encode('ascii'))
             else:
-                print(f"{COLORS['CYAN']}{message}{COLORS['RESET']}\n{COLORS['GREEN']}{COLORS['RESET']}", end="", flush=True)
+                sys.stdout.write('\r')                  
+                sys.stdout.flush()
+                print(f"\n {message}")
+                sys.stdout.write("> ")                 
+                sys.stdout.flush()
         except:
-            print(f"\n{COLORS['RED']}Network ERROR occurred. Likely, the server was closed.{COLORS['RESET']}")
+            print("\n[ERROR] Network connection lost.")
             client.close()
             break
 
 def write():
     while True:
-        message = input(f"{COLORS['YELLOW']}You: {COLORS['RESET']}")
-        if len(message) > 200:
-            print(f"{COLORS['RED']}Message exceeds 200 characters. Please shorten your message.{COLORS['RESET']}")
-            continue
-        formatted_message = f"{nickname}: {message}"
-        client.send(formatted_message.encode('ascii'))
-        time.sleep(2)  # 2-second cooldown
+        try:
+            message = input("> ")
+            full_message = f"{nickname}: {message}"
+            client.send(full_message.encode('ascii'))
+        except KeyboardInterrupt:
+            print("\n[INFO] Exiting chat...")
+            client.close()
+            break
 
-receive_thread = threading.Thread(target=receive, daemon=True)
+# Start threads
+receive_thread = threading.Thread(target=receive)
 receive_thread.start()
 
 write_thread = threading.Thread(target=write)
